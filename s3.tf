@@ -8,6 +8,10 @@ resource "aws_acm_certificate" "hugo" {
   provider          = aws.aws_cloudfront # CloudFront uses certificates from US-EAST-1 region only
   domain_name       = local.dns_name
   validation_method = "DNS"
+
+  lifecycle {
+    create_before_destroy = true
+  }
 }
 
 data "aws_route53_zone" "hugo" {
@@ -60,7 +64,7 @@ data "aws_iam_policy_document" "s3_bucket_policy" {
     ]
 
     resources = [
-      "arn:aws:s3:::${local.bucket_name}/*",
+      "${aws_s3_bucket.hugo.arn}/*",
     ]
     condition {
       test     = "StringLike"
@@ -80,16 +84,54 @@ resource "aws_s3_bucket_policy" "hugo" {
   policy = data.aws_iam_policy_document.s3_bucket_policy.json
 }
 
-resource "aws_s3_bucket_acl" "hugo" {
+# Nothing but CloudFront ever reads this bucket, and it reaches it through the
+# bucket policy above. Block every public access path regardless.
+resource "aws_s3_bucket_public_access_block" "hugo" {
   bucket = aws_s3_bucket.hugo.id
-  acl    = "private"
+
+  block_public_acls       = true
+  block_public_policy     = true
+  ignore_public_acls      = true
+  restrict_public_buckets = true
+}
+
+# Buckets created since April 2023 have ACLs disabled, so `aws_s3_bucket_acl`
+# fails on a fresh bucket with AccessControlListNotSupported. Say so explicitly.
+resource "aws_s3_bucket_ownership_controls" "hugo" {
+  bucket = aws_s3_bucket.hugo.id
+
+  rule {
+    object_ownership = "BucketOwnerEnforced"
+  }
+}
+
+resource "aws_s3_bucket_server_side_encryption_configuration" "hugo" {
+  bucket = aws_s3_bucket.hugo.id
+
+  rule {
+    apply_server_side_encryption_by_default {
+      sse_algorithm = "AES256"
+    }
+    bucket_key_enabled = true
+  }
 }
 
 resource "aws_cloudfront_function" "redirect" {
   name    = "redirect"
-  runtime = "cloudfront-js-1.0"
+  runtime = "cloudfront-js-2.0"
   comment = "Redirect users from cloudfront to s3 real object name."
   code    = file("${path.module}/redirect.js")
+}
+
+# CachingOptimized: no cookies, no query strings, honours the origin's
+# Cache-Control. Replaces the deprecated inline `forwarded_values`.
+data "aws_cloudfront_cache_policy" "caching_optimized" {
+  name = "Managed-CachingOptimized"
+}
+
+# HSTS, X-Content-Type-Options, X-Frame-Options, Referrer-Policy.
+data "aws_cloudfront_response_headers_policy" "security_headers" {
+  name = "Managed-SecurityHeadersPolicy"
 }
 
 resource "aws_cloudfront_distribution" "s3_distribution" {
@@ -101,6 +143,7 @@ resource "aws_cloudfront_distribution" "s3_distribution" {
 
   enabled             = true
   is_ipv6_enabled     = true
+  http_version        = "http2and3"
   default_root_object = "index.html"
 
   aliases = [local.dns_name]
@@ -118,13 +161,9 @@ resource "aws_cloudfront_distribution" "s3_distribution" {
 
     target_origin_id = local.origin_name
 
-    forwarded_values {
-      query_string = false
-
-      cookies {
-        forward = "none"
-      }
-    }
+    cache_policy_id            = data.aws_cloudfront_cache_policy.caching_optimized.id
+    response_headers_policy_id = data.aws_cloudfront_response_headers_policy.security_headers.id
+    compress                   = true
 
     function_association {
       event_type   = "viewer-request"
@@ -132,9 +171,6 @@ resource "aws_cloudfront_distribution" "s3_distribution" {
     }
 
     viewer_protocol_policy = "redirect-to-https"
-    min_ttl                = 0
-    default_ttl            = 86400
-    max_ttl                = 31536000
   }
 
   price_class = var.cloudfront_price_class
@@ -146,25 +182,46 @@ resource "aws_cloudfront_distribution" "s3_distribution" {
   }
 
   viewer_certificate {
-    acm_certificate_arn      = aws_acm_certificate.hugo.arn
+    # The validation resource, not the certificate: CloudFront must not be
+    # handed a certificate that ACM has not issued yet.
+    acm_certificate_arn      = aws_acm_certificate_validation.hugo.certificate_arn
     ssl_support_method       = "sni-only"
     minimum_protocol_version = "TLSv1.2_2021"
   }
 
+  # With OAC, a missing object comes back from S3 as a 403. Serve Hugo's 404
+  # page and keep the 404 status, so search engines do not index dead URLs as
+  # if they were the home page.
   custom_error_response {
     error_code            = 403
-    response_code         = 200
-    error_caching_min_ttl = 0
-    response_page_path    = "/"
+    response_code         = 404
+    error_caching_min_ttl = 10
+    response_page_path    = "/404.html"
+  }
+
+  custom_error_response {
+    error_code            = 404
+    response_code         = 404
+    error_caching_min_ttl = 10
+    response_page_path    = "/404.html"
   }
 
   wait_for_deployment = false
 }
 
+# Keeps the existing apex record in state instead of destroying and recreating
+# it, which would take the site off DNS for the length of the apply.
+moved {
+  from = aws_route53_record.route53_record
+  to   = aws_route53_record.route53_record["A"]
+}
+
 resource "aws_route53_record" "route53_record" {
+  for_each = toset(["A", "AAAA"]) # is_ipv6_enabled is useless without the AAAA alias
+
   zone_id = data.aws_route53_zone.hugo.zone_id
   name    = local.dns_name
-  type    = "A"
+  type    = each.value
 
   alias {
     name                   = aws_cloudfront_distribution.s3_distribution.domain_name
