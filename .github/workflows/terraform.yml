@@ -34,3 +34,18 @@ jobs:
 
       - name: terraform validate
         run: terraform validate
+
+  docs:
+    name: terraform-docs
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+
+      # Same hook as .pre-commit-config.yaml: fails when README.md is stale.
+      - uses: terraform-docs/gh-actions@v1.4.1
+        with:
+          working-dir: .
+          output-file: README.md
+          output-method: inject
+          fail-on-diff: true

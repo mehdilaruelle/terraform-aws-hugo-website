@@ -62,12 +62,7 @@ variable "github_repositories" {
 }
 
 variable "github_subjects" {
-  description = <<-EOT
-    Which GitHub workflow runs may assume the role, as `sub` claim suffixes appended
-    to `repo:<org>/<repo>:`. The default limits the role to the default branch.
-    Use `["*"]` to allow every branch, tag and pull request, as this stack used to.
-    See https://docs.github.com/en/actions/deployment/security-hardening-your-deployments/about-security-hardening-with-openid-connect#example-subject-claims
-  EOT
+  description = "GitHub `sub` claim suffixes allowed to assume the role, appended to `repo:<org>/<repo>:`. Use `[\"*\"]` to allow every ref."
   type        = list(string)
   default     = ["ref:refs/heads/main"]
 }

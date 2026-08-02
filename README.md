@@ -117,14 +117,14 @@ After that, don't forget to remove:
 ## Requirements
 
 | Name | Version |
-| ---- | ------- |
+|------|---------|
 | <a name="requirement_terraform"></a> [terraform](#requirement\_terraform) | >= 1.5 |
 | <a name="requirement_aws"></a> [aws](#requirement\_aws) | ~> 6.0 |
 
 ## Providers
 
 | Name | Version |
-| ---- | ------- |
+|------|---------|
 | <a name="provider_aws"></a> [aws](#provider\_aws) | 6.57.1 |
 | <a name="provider_aws.aws_cloudfront"></a> [aws.aws\_cloudfront](#provider\_aws.aws\_cloudfront) | 6.57.1 |
 
@@ -135,7 +135,7 @@ No modules.
 ## Resources
 
 | Name | Type |
-| ---- | ---- |
+|------|------|
 | [aws_acm_certificate.hugo](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/acm_certificate) | resource |
 | [aws_acm_certificate_validation.hugo](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/acm_certificate_validation) | resource |
 | [aws_cloudfront_distribution.s3_distribution](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/cloudfront_distribution) | resource |
@@ -162,14 +162,14 @@ No modules.
 ## Inputs
 
 | Name | Description | Type | Default | Required |
-| ---- | ----------- | ---- | ------- | :------: |
+|------|-------------|------|---------|:--------:|
 | <a name="input_bucket_name"></a> [bucket\_name](#input\_bucket\_name) | The S3 bucket name to store the HUGO website. | `string` | n/a | yes |
 | <a name="input_client_id_list"></a> [client\_id\_list](#input\_client\_id\_list) | A list of client IDs (also known as audiences). | `list(string)` | <pre>[<br/>  "sts.amazonaws.com"<br/>]</pre> | no |
 | <a name="input_cloudfront_price_class"></a> [cloudfront\_price\_class](#input\_cloudfront\_price\_class) | The price class to use for CloudFront distribution. | `string` | `"PriceClass_100"` | no |
 | <a name="input_dns_name"></a> [dns\_name](#input\_dns\_name) | The DNS name to use for your HUGO website. | `string` | n/a | yes |
 | <a name="input_github_org"></a> [github\_org](#input\_github\_org) | GitHub organisation name. | `string` | `""` | no |
 | <a name="input_github_repositories"></a> [github\_repositories](#input\_github\_repositories) | List of GitHub repository names. | `list(string)` | `[]` | no |
-| <a name="input_github_subjects"></a> [github\_subjects](#input\_github\_subjects) | Which GitHub workflow runs may assume the role, as `sub` claim suffixes appended<br/>to `repo:<org>/<repo>:`. The default limits the role to the default branch.<br/>Use `["*"]` to allow every branch, tag and pull request, as this stack used to.<br/>See https://docs.github.com/en/actions/deployment/security-hardening-your-deployments/about-security-hardening-with-openid-connect#example-subject-claims | `list(string)` | <pre>[<br/>  "ref:refs/heads/main"<br/>]</pre> | no |
+| <a name="input_github_subjects"></a> [github\_subjects](#input\_github\_subjects) | GitHub `sub` claim suffixes allowed to assume the role, appended to `repo:<org>/<repo>:`. Use `["*"]` to allow every ref. | `list(string)` | <pre>[<br/>  "ref:refs/heads/main"<br/>]</pre> | no |
 | <a name="input_iam_role_name"></a> [iam\_role\_name](#input\_iam\_role\_name) | Friendly name of the role. If omitted, Terraform will assign a random, unique name. | `string` | `"GitHubOIDCRole"` | no |
 | <a name="input_max_session_duration"></a> [max\_session\_duration](#input\_max\_session\_duration) | Maximum session duration in seconds. | `number` | `3600` | no |
 | <a name="input_oidc_url"></a> [oidc\_url](#input\_oidc\_url) | The URL of the identity provider. Corresponds to the iss claim. | `string` | `"https://token.actions.githubusercontent.com"` | no |
@@ -179,7 +179,7 @@ No modules.
 ## Outputs
 
 | Name | Description |
-| ---- | ----------- |
+|------|-------------|
 | <a name="output_aws_role_arn"></a> [aws\_role\_arn](#output\_aws\_role\_arn) | The AWS role ARN to use in your GitHub Actions to fetch dynamic creds from AWS. |
 | <a name="output_route53_ns_records"></a> [route53\_ns\_records](#output\_route53\_ns\_records) | List of Name Server (NS) records to add to your main DNS zone (delegation). |
 <!-- END_TF_DOCS -->

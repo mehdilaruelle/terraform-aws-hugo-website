@@ -84,8 +84,6 @@ resource "aws_s3_bucket_policy" "hugo" {
   policy = data.aws_iam_policy_document.s3_bucket_policy.json
 }
 
-# Nothing but CloudFront ever reads this bucket, and it reaches it through the
-# bucket policy above. Block every public access path regardless.
 resource "aws_s3_bucket_public_access_block" "hugo" {
   bucket = aws_s3_bucket.hugo.id
 
@@ -123,8 +121,6 @@ resource "aws_cloudfront_function" "redirect" {
   code    = file("${path.module}/redirect.js")
 }
 
-# CachingOptimized: no cookies, no query strings, honours the origin's
-# Cache-Control. Replaces the deprecated inline `forwarded_values`.
 data "aws_cloudfront_cache_policy" "caching_optimized" {
   name = "Managed-CachingOptimized"
 }
@@ -182,8 +178,6 @@ resource "aws_cloudfront_distribution" "s3_distribution" {
   }
 
   viewer_certificate {
-    # The validation resource, not the certificate: CloudFront must not be
-    # handed a certificate that ACM has not issued yet.
     acm_certificate_arn      = aws_acm_certificate_validation.hugo.certificate_arn
     ssl_support_method       = "sni-only"
     minimum_protocol_version = "TLSv1.2_2021"
