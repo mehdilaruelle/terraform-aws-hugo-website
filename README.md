@@ -86,8 +86,13 @@ To learn more about it, [take a look into the blog post](https://mehdilaruelle.c
 
 ### Upgrading an existing deployment
 
-The stack now needs the AWS provider `~> 6.0` and Terraform `>= 1.5`, so start with
-`terraform init -upgrade`. Read the plan before applying: a few things change in place.
+The stack now needs the AWS provider `~> 6.0` and Terraform `>= 1.5`. `.terraform.lock.hcl`
+is committed and pins 6.57.1 with checksums for `linux_amd64`, `darwin_arm64` and
+`windows_amd64`, so a plain `terraform init` gets that exact version. To move to a newer
+6.x, run `terraform init -upgrade` and commit the updated lock; on another platform, run
+`terraform providers lock -platform=<os>_<arch>` to add its checksums.
+
+Read the plan before applying: a few things change in place.
 
 - `aws_s3_bucket_acl` is gone. Buckets created since April 2023 have ACLs disabled and
   that resource fails on them with `AccessControlListNotSupported`; `BucketOwnerEnforced`
@@ -125,8 +130,8 @@ After that, don't forget to remove:
 
 | Name | Version |
 |------|---------|
-| <a name="provider_aws"></a> [aws](#provider\_aws) | ~> 6.0 |
-| <a name="provider_aws.aws_cloudfront"></a> [aws.aws\_cloudfront](#provider\_aws.aws\_cloudfront) | ~> 6.0 |
+| <a name="provider_aws"></a> [aws](#provider\_aws) | 6.57.1 |
+| <a name="provider_aws.aws_cloudfront"></a> [aws.aws\_cloudfront](#provider\_aws.aws\_cloudfront) | 6.57.1 |
 
 ## Modules
 

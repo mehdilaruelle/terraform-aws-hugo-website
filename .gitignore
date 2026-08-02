@@ -4,7 +4,9 @@
 # .tfstate files
 *.tfstate
 *.tfstate.*
-*.lock.hcl
+
+# .terraform.lock.hcl is deliberately NOT ignored: this is a root module, so the
+# lock pins provider versions and checksums across machines and CI.
 
 # Crash log files
 crash.log
