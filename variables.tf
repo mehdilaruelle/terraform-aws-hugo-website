@@ -1,19 +1,34 @@
 variable "bucket_name" {
   description = "The S3 bucket name to store the HUGO website."
+  type        = string
 }
 
 variable "dns_name" {
   description = "The DNS name to use for your HUGO website."
+  type        = string
 }
 
 variable "region" {
   description = "The main region used by the AWS provider to deploy the solution."
+  type        = string
   default     = "eu-west-3"
 }
 
 variable "cloudfront_price_class" {
   description = "The price class to use for CloudFront distribution."
+  type        = string
   default     = "PriceClass_100"
+
+  validation {
+    condition     = contains(["PriceClass_All", "PriceClass_200", "PriceClass_100"], var.cloudfront_price_class)
+    error_message = "Must be one of PriceClass_All, PriceClass_200 or PriceClass_100."
+  }
+}
+
+variable "tags" {
+  description = "Tags applied to every resource created by this stack."
+  type        = map(string)
+  default     = {}
 }
 
 ###### GITHUB ACTION VARIABLES ######
@@ -34,12 +49,6 @@ variable "client_id_list" {
   default     = ["sts.amazonaws.com"]
 }
 
-variable "thumbprint_list" {
-  description = "A list of server certificate thumbprints for the OpenID Connect (OIDC) identity provider's server certificate(s)."
-  type        = list(string)
-  default     = ["6938fd4d98bab03faadb97b34396831e3780aea1"]
-}
-
 variable "github_org" {
   description = "GitHub organisation name."
   type        = string
@@ -52,6 +61,12 @@ variable "github_repositories" {
   default     = []
 }
 
+variable "github_subjects" {
+  description = "GitHub `sub` claim suffixes allowed to assume the role, appended to `repo:<org>/<repo>:`. Use `[\"*\"]` to allow every ref."
+  type        = list(string)
+  default     = ["ref:refs/heads/main"]
+}
+
 variable "iam_role_name" {
   description = "Friendly name of the role. If omitted, Terraform will assign a random, unique name."
   type        = string
@@ -59,7 +74,7 @@ variable "iam_role_name" {
 }
 
 variable "max_session_duration" {
-  default     = 3600 #1hour (min accepted by AWS)
   description = "Maximum session duration in seconds."
   type        = number
+  default     = 3600 #1hour (min accepted by AWS)
 }
