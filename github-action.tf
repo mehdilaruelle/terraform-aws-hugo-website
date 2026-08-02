@@ -16,7 +16,7 @@ data "aws_iam_policy_document" "assume_role" {
 
     principals {
       type        = "Federated"
-      identifiers = [one(aws_iam_openid_connect_provider.github).arn]
+      identifiers = [one(aws_iam_openid_connect_provider.github[*].arn)]
     }
 
     condition {
@@ -54,15 +54,15 @@ resource "aws_iam_role" "github" {
   count = local.enable_aws_github_oidc
 
   name                 = var.iam_role_name
-  assume_role_policy   = one(data.aws_iam_policy_document.assume_role).json
+  assume_role_policy   = one(data.aws_iam_policy_document.assume_role[*].json)
   max_session_duration = var.max_session_duration
 }
 
 resource "aws_iam_role_policy_attachment" "policy" {
   count = local.enable_aws_github_oidc
 
-  role       = one(aws_iam_role.github).id
-  policy_arn = one(aws_iam_policy.github_hugo).arn
+  role       = one(aws_iam_role.github[*].id)
+  policy_arn = one(aws_iam_policy.github_hugo[*].arn)
 }
 
 resource "aws_iam_policy" "github_hugo" {
@@ -70,7 +70,7 @@ resource "aws_iam_policy" "github_hugo" {
 
   name = var.iam_role_name
 
-  policy = one(data.aws_iam_policy_document.hugo).json
+  policy = one(data.aws_iam_policy_document.hugo[*].json)
 }
 
 data "aws_iam_policy_document" "hugo" {

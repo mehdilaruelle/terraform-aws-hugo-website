@@ -5,5 +5,5 @@ output "route53_ns_records" {
 
 output "aws_role_arn" {
   description = "The AWS role ARN to use in your GitHub Actions to fetch dynamic creds from AWS."
-  value       = try(one(aws_iam_role.github).arn, null)
+  value       = one(aws_iam_role.github[*].arn)
 }
