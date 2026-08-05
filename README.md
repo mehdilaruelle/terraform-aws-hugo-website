@@ -37,6 +37,26 @@ It serves over HTTP/2 and HTTP/3, compresses responses, and applies the managed
 
 A missing page is served as Hugo's `/404.html` with an HTTP 404 status.
 
+### Invalidating the CDN after a deploy
+
+CloudFront caches for 24 hours by default, so uploading a new build to S3 does not
+put it in front of visitors: they keep getting the previous version until the TTL
+expires. The IAM role already grants `cloudfront:CreateInvalidation`, so all that is
+needed is to tell Hugo which distribution to invalidate.
+
+```bash
+terraform output cloudfront_distribution_id
+```
+
+Put it in the Hugo site's deployment target, then deploy with `hugo deploy --invalidateCDN`:
+
+```toml
+[[deployment.targets]]
+  name                     = "aws"
+  URL                      = "s3://your-bucket?region=eu-west-3"
+  cloudFrontDistributionID = "E1234567890ABC"
+```
+
 ## How is it working ?
 
 Before starting, you need to check if:
@@ -186,6 +206,7 @@ No modules.
 | Name | Description |
 |------|-------------|
 | <a name="output_aws_role_arn"></a> [aws\_role\_arn](#output\_aws\_role\_arn) | The AWS role ARN to use in your GitHub Actions to fetch dynamic creds from AWS. |
+| <a name="output_cloudfront_distribution_id"></a> [cloudfront\_distribution\_id](#output\_cloudfront\_distribution\_id) | The CloudFront distribution ID, for `cloudFrontDistributionID` in Hugo's deployment target so `hugo deploy --invalidateCDN` can clear the cache. |
 | <a name="output_route53_ns_records"></a> [route53\_ns\_records](#output\_route53\_ns\_records) | List of Name Server (NS) records to add to your main DNS zone (delegation). |
 <!-- END_TF_DOCS -->
 
