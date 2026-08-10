@@ -8,12 +8,6 @@ variable "dns_name" {
   type        = string
 }
 
-variable "region" {
-  description = "The main region used by the AWS provider to deploy the solution."
-  type        = string
-  default     = "eu-west-3"
-}
-
 variable "cloudfront_price_class" {
   description = "The price class to use for CloudFront distribution."
   type        = string

@@ -28,11 +28,16 @@ jobs:
       - name: terraform fmt
         run: terraform fmt -check -recursive -diff
 
-      # No backend and no credentials: this only type-checks the configuration.
+      # The module no longer configures providers, so it cannot be validated
+      # from its own root — a root module has to supply them. The example does,
+      # and validating it exercises the module through the same door a caller
+      # uses. No backend and no credentials: this only type-checks.
       - name: terraform init
+        working-directory: examples/complete
         run: terraform init -backend=false
 
       - name: terraform validate
+        working-directory: examples/complete
         run: terraform validate
 
   docs:

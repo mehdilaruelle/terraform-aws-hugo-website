@@ -48,6 +48,8 @@ resource "aws_iam_openid_connect_provider" "github" {
 
   url            = var.oidc_url
   client_id_list = var.client_id_list
+
+  tags = var.tags
 }
 
 resource "aws_iam_role" "github" {
@@ -56,6 +58,8 @@ resource "aws_iam_role" "github" {
   name                 = var.iam_role_name
   assume_role_policy   = one(data.aws_iam_policy_document.assume_role[*].json)
   max_session_duration = var.max_session_duration
+
+  tags = var.tags
 }
 
 resource "aws_iam_role_policy_attachment" "policy" {
@@ -71,6 +75,8 @@ resource "aws_iam_policy" "github_hugo" {
   name = var.iam_role_name
 
   policy = one(data.aws_iam_policy_document.hugo[*].json)
+
+  tags = var.tags
 }
 
 data "aws_iam_policy_document" "hugo" {

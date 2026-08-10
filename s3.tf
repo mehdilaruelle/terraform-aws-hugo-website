@@ -12,6 +12,8 @@ resource "aws_acm_certificate" "hugo" {
   lifecycle {
     create_before_destroy = true
   }
+
+  tags = var.tags
 }
 
 data "aws_route53_zone" "hugo" {
@@ -77,6 +79,8 @@ data "aws_iam_policy_document" "s3_bucket_policy" {
 resource "aws_s3_bucket" "hugo" {
   bucket        = local.bucket_name
   force_destroy = false
+
+  tags = var.tags
 }
 
 resource "aws_s3_bucket_policy" "hugo" {
@@ -201,6 +205,8 @@ resource "aws_cloudfront_distribution" "s3_distribution" {
   }
 
   wait_for_deployment = false
+
+  tags = var.tags
 }
 
 # Keeps the existing apex record in state instead of destroying and recreating
