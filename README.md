@@ -12,31 +12,23 @@ provider "aws" {
   region = "eu-west-3"
 }
 
-# CloudFront only accepts ACM certificates issued in us-east-1, whatever region
-# the rest of the stack lives in.
-provider "aws" {
-  alias  = "us_east_1"
-  region = "us-east-1"
-}
-
 module "hugo_blog" {
   source  = "mehdilaruelle/hugo-blog/aws"
   version = "~> 1.0"
-
-  providers = {
-    aws                = aws
-    aws.aws_cloudfront = aws.us_east_1
-  }
 
   bucket_name = "my-hugo-bucket"
   dns_name    = "example.com"
 }
 ```
 
-The two `providers` entries are required. The module declares them as
-`configuration_aliases` and configures neither itself — a module that configures
-its own providers cannot be used with `count`, `for_each` or `depends_on`, and
+One provider, and nothing to pass. The module configures none of its own — a
+module that does cannot be used with `count`, `for_each` or `depends_on`, and
 cannot be removed cleanly, because nothing is left able to destroy what it made.
+
+CloudFront accepts ACM certificates from **us-east-1** and nowhere else. The
+module asks for that region on the certificate itself, which the AWS provider
+has allowed per resource since v6, so there is no second provider for you to
+configure and pass.
 
 A working configuration lives in [`examples/complete`](examples/complete), which
 is also what CI validates.
@@ -158,7 +150,8 @@ authenticate with. Point a configuration of your own at it instead — see
 `terraform import` against the new addresses.
 
 The `region` variable is gone with the provider blocks. Set the region on your
-own `provider "aws"` block.
+own `provider "aws"` block. The certificate pins itself to us-east-1 regardless,
+as CloudFront requires.
 
 
 The stack now needs the AWS provider `~> 6.0` and Terraform `>= 1.5`. `.terraform.lock.hcl`
@@ -207,7 +200,6 @@ After that, don't forget to remove:
 | Name | Version |
 |------|---------|
 | <a name="provider_aws"></a> [aws](#provider\_aws) | 6.57.1 |
-| <a name="provider_aws.aws_cloudfront"></a> [aws.aws\_cloudfront](#provider\_aws.aws\_cloudfront) | 6.57.1 |
 
 ## Modules
 

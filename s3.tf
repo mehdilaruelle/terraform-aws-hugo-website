@@ -5,7 +5,10 @@ locals {
 }
 
 resource "aws_acm_certificate" "hugo" {
-  provider          = aws.aws_cloudfront # CloudFront uses certificates from US-EAST-1 region only
+  # CloudFront accepts ACM certificates from us-east-1 and nowhere else. The
+  # AWS provider takes a region per resource since v6, so this needs no second
+  # provider and the caller needs to pass none.
+  region            = "us-east-1"
   domain_name       = local.dns_name
   validation_method = "DNS"
 
@@ -39,7 +42,7 @@ resource "aws_route53_record" "hugo" {
 }
 
 resource "aws_acm_certificate_validation" "hugo" {
-  provider                = aws.aws_cloudfront # CloudFront uses certificates from US-EAST-1 region only
+  region                  = "us-east-1"
   certificate_arn         = aws_acm_certificate.hugo.arn
   validation_record_fqdns = [for record in aws_route53_record.hugo : record.fqdn]
 }
