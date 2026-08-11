@@ -77,10 +77,25 @@ variable "access_log_bucket" {
   description = "Bucket that receives S3 server access logs for the site bucket. Empty, the default, leaves logging off. The bucket must already exist, allow log delivery, and sit in the same region."
   type        = string
   default     = ""
+
+  validation {
+    condition     = var.access_log_bucket == "" || can(regex("^[a-z0-9][a-z0-9.-]{1,61}[a-z0-9]$", var.access_log_bucket))
+    error_message = "access_log_bucket must be empty or a valid S3 bucket name: 3 to 63 characters, lowercase letters, digits, dots and hyphens, starting and ending with a letter or digit."
+  }
 }
 
 variable "access_log_prefix" {
-  description = "Key prefix for the access logs. Only read when access_log_bucket is set."
+  description = "Key prefix for the access logs. Only read when access_log_bucket is set. Ends with a slash, or the prefix runs into the object name."
   type        = string
   default     = "s3-access-logs/"
+
+  validation {
+    condition     = var.access_log_prefix == "" || endswith(var.access_log_prefix, "/")
+    error_message = "access_log_prefix must end with a slash, or S3 joins it to the object name and writes keys such as s3-access-logs2026-01-01."
+  }
+
+  validation {
+    condition     = !startswith(var.access_log_prefix, "/")
+    error_message = "access_log_prefix must not start with a slash: S3 keys have no leading separator, and one would create an unnamed top-level folder."
+  }
 }
