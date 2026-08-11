@@ -13,7 +13,7 @@ provider "aws" {
 }
 
 module "hugo_blog" {
-  source  = "mehdilaruelle/hugo-blog/aws"
+  source  = "mehdilaruelle/hugo-website/aws"
   version = "~> 1.0"
 
   bucket_name = "my-hugo-bucket"
@@ -162,9 +162,12 @@ moved {
 }
 ```
 
-One block per resource. Back the state up first (`terraform state pull > backup.tfstate`),
-then apply only once `terraform plan` reports **no changes** — that is the signal that
-every address landed and nothing is about to be rebuilt.
+One block per resource. Back the state up first (`terraform state pull > backup.tfstate`).
+
+What you are reading the plan for is **no destroys and no recreations** — not an
+empty plan. Some in-place changes are expected on this upgrade, and they are
+listed below; read them, then apply. Anything proposing to replace a resource
+means an address has not landed, and applying would rebuild it for real.
 
 The `region` variable is gone with the provider blocks. Set the region on your
 own `provider "aws"` block. The certificate pins itself to us-east-1 regardless,

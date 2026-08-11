@@ -14,7 +14,7 @@ provider "aws" {
 }
 
 module "hugo_blog" {
-  # Published: source = "mehdilaruelle/hugo-blog/aws"
+  # Published: source = "mehdilaruelle/hugo-website/aws"
   #            version = "~> 1.0"
   source = "../../"
 

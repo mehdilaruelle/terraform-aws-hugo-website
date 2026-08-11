@@ -5,10 +5,10 @@
 *.tfstate
 *.tfstate.*
 
-# The lock file of an example is ignored: an example is a demonstration, and
-# Terraform reads the root module's lock anyway, so pinning one here would only
-# go stale. The lock at the repository root is kept, and governs this
-# repository's own checks.
+# The example is a root module of its own, so Terraform writes a lock file there
+# when CI validates it. It is generated on each run rather than committed: the
+# example demonstrates usage, and a version pinned here would only go stale.
+# The lock at the repository root is kept, and governs this repository itself.
 examples/**/.terraform.lock.hcl
 
 # Crash log files
