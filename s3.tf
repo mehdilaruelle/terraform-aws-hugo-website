@@ -83,6 +83,14 @@ resource "aws_s3_bucket" "hugo" {
   tags = var.tags
 }
 
+resource "aws_s3_bucket_logging" "hugo" {
+  count = var.access_log_bucket == "" ? 0 : 1
+
+  bucket        = aws_s3_bucket.hugo.id
+  target_bucket = var.access_log_bucket
+  target_prefix = var.access_log_prefix
+}
+
 resource "aws_s3_bucket_policy" "hugo" {
   bucket = aws_s3_bucket.hugo.id
   policy = data.aws_iam_policy_document.s3_bucket_policy.json
