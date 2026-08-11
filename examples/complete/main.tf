@@ -15,7 +15,7 @@ provider "aws" {
 
 module "hugo_blog" {
   # Published: source = "mehdilaruelle/hugo-website/aws"
-  #            version = "~> 1.0"
+  #            version = "~> 1.1"
   source = "../../"
 
   bucket_name = var.bucket_name

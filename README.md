@@ -33,6 +33,34 @@ configure and pass.
 A working configuration lives in [`examples/complete`](examples/complete), which
 is also what CI validates.
 
+### While the registry entry is pending
+
+The module is tagged but not yet listed on the Terraform Registry, so the
+`source` above does not resolve. Until it is, name the tag directly:
+
+```hcl
+source = "git::https://github.com/mehdilaruelle/terraform-aws-hugo-website.git?ref=v1.1.0"
+```
+
+Both pin. The registry form is shorter and lets `~>` pick up patches without
+editing the source line.
+
+## Releases
+
+Tags come from the commit messages. semantic-release reads what has landed on
+`master` since the last tag and decides:
+
+| commit | release |
+| --- | --- |
+| `fix:` | patch |
+| `feat:` | minor |
+| a `BREAKING CHANGE:` footer | major |
+| anything else | none |
+
+Which is why the pull request title is checked: a squash merge takes the title
+as the commit subject, so a title semantic-release cannot parse produces no
+release at all — and nothing goes red to tell you.
+
 ## Prerequisites
 
 You need to a domain name (for HTTPS).
