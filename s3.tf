@@ -5,9 +5,6 @@ locals {
 }
 
 resource "aws_acm_certificate" "hugo" {
-  # CloudFront accepts ACM certificates from us-east-1 and nowhere else. The
-  # AWS provider takes a region per resource since v6, so this needs no second
-  # provider and the caller needs to pass none.
   region            = "us-east-1"
   domain_name       = local.dns_name
   validation_method = "DNS"
