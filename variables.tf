@@ -8,12 +8,6 @@ variable "dns_name" {
   type        = string
 }
 
-variable "region" {
-  description = "The main region used by the AWS provider to deploy the solution."
-  type        = string
-  default     = "eu-west-3"
-}
-
 variable "cloudfront_price_class" {
   description = "The price class to use for CloudFront distribution."
   type        = string
@@ -26,7 +20,7 @@ variable "cloudfront_price_class" {
 }
 
 variable "tags" {
-  description = "Tags applied to every resource created by this stack."
+  description = "Tags applied to taggable resources created by this module."
   type        = map(string)
   default     = {}
 }

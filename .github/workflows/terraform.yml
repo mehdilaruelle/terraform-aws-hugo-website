@@ -28,11 +28,12 @@ jobs:
       - name: terraform fmt
         run: terraform fmt -check -recursive -diff
 
-      # No backend and no credentials: this only type-checks the configuration.
       - name: terraform init
+        working-directory: examples/complete
         run: terraform init -backend=false
 
       - name: terraform validate
+        working-directory: examples/complete
         run: terraform validate
 
   docs:

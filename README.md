@@ -5,6 +5,34 @@ This infrastructure force the usage of HTTPS with a specific domain name.
 
 You can read [the dedicated blog post on this on my blog](https://mehdilaruelle.com/posts/2022/08/deploy-your-hugo-site-on-aws-with-terraform/).
 
+## Usage
+
+```hcl
+provider "aws" {
+  region = "eu-west-3"
+}
+
+module "hugo_blog" {
+  source  = "mehdilaruelle/hugo-website/aws"
+  version = "~> 1.0"
+
+  bucket_name = "my-hugo-bucket"
+  dns_name    = "example.com"
+}
+```
+
+One provider, and nothing to pass. The module configures none of its own — a
+module that does cannot be used with `count`, `for_each` or `depends_on`, and
+cannot be removed cleanly, because nothing is left able to destroy what it made.
+
+CloudFront accepts ACM certificates from **us-east-1** and nowhere else. The
+module asks for that region on the certificate itself, which the AWS provider
+has allowed per resource since v6, so there is no second provider for you to
+configure and pass.
+
+A working configuration lives in [`examples/complete`](examples/complete), which
+is also what CI validates.
+
 ## Prerequisites
 
 You need to a domain name (for HTTPS).
@@ -45,7 +73,7 @@ expires. The IAM role already grants `cloudfront:CreateInvalidation`, so all tha
 needed is to tell Hugo which distribution to invalidate.
 
 ```bash
-terraform output cloudfront_distribution_id
+$ terraform output cloudfront_distribution_id
 ```
 
 Put it in the Hugo site's deployment target, then deploy with `hugo deploy --invalidateCDN`:
@@ -66,25 +94,30 @@ If so, you can now be able to deploy your infrastructure.
 
 ### Deployment
 
-Add a `terraform.tfvars` file with the following variables and values:
-- `bucket_name` : is the s3 bucket that will be created
-- `dns_name` : will be the domain name used via Route 53
+Write a configuration that calls the module — see [Usage](#usage) — supplying at
+least:
 
-> Also, create `backend.tf` file with your own Terraform backend configuration if needed.
+- `bucket_name`, the S3 bucket that will hold the built site
+- `dns_name`, the domain served through Route 53
 
-Once the GIT repository is ready, run your commands (check your AWS credentials beforehand):
+Then, with your AWS credentials in place:
+
 ```bash
 $ terraform init
 $ terraform plan
 $ terraform apply
 ```
 
+The region comes from your own `provider` block rather than from a module
+variable, which is what lets one configuration deploy several sites in different
+regions.
+
 ### **OPTIONAL** - Create a role for GitHub Action
 
 This stack can create a role for GitHub Action with the Action [configure-aws-credentials
 ](https://github.com/aws-actions/configure-aws-credentials#configure-aws-credentials-for-github-actions).
 
-To use this option, you should define in your `terraform.tfvars` the following values:
+To use this option, pass the module the following:
 - `github_org` is the GitHub Organization name where your repository `hugo blog` is hosted in GitHub.
   In our case, should be your (in my case `mehdilaruelle`).
 - `github_repositories` is a list of GitHub repositories name to allow to assume the Web Identity role.
@@ -99,18 +132,55 @@ github_subjects = ["ref:refs/heads/production"] # or ["*"] for every ref
 
 You can also configure some optional variable based on your need like `iam_role_name`, `client_id_list`, etc (see below to have an exhaustive list).
 
-Then, do a `$ terraform apply` to create your role and do a `$ terraform output aws_role_arn` to get the role ARN to use
-for your GitHub Action.
+Apply, then read the ARN from the module's output:
+
+```bash
+$ terraform output aws_role_arn
+```
 
 To learn more about it, [take a look into the blog post](https://mehdilaruelle.com/posts/2023/10/deploy-your-hugo-site-on-aws-with-terraform-v2/#setting-up-temporary-aws-credentials)
 
 ### Upgrading an existing deployment
 
-The stack now needs the AWS provider `~> 6.0` and Terraform `>= 1.5`. `.terraform.lock.hcl`
-is committed and pins 6.57.1 with checksums for `linux_amd64`, `darwin_arm64` and
-`windows_amd64`, so a plain `terraform init` gets that exact version. To move to a newer
-6.x, run `terraform init -upgrade` and commit the updated lock; on another platform, run
-`terraform providers lock -platform=<os>_<arch>` to add its checksums.
+**This repository is now a module rather than a stack you apply directly.** If
+you were cloning it and running `terraform apply` inside it, that no longer
+works: the `provider` blocks have moved out, so the configuration has nothing to
+authenticate with. Point a configuration of your own at it instead — see [Usage](#usage).
+
+Every address changes: `aws_s3_bucket.hugo` becomes `module.<name>.aws_s3_bucket.hugo`,
+and so on for all sixteen resources. Apply without telling Terraform that, and it
+plans to destroy and recreate the lot — the bucket refuses (`force_destroy` is
+false), and the distribution takes about fifteen minutes to come back.
+
+Declare the moves in your root instead. They are reviewable in the plan, unlike
+`terraform state mv`, and they survive being run twice:
+
+```hcl
+moved {
+  from = aws_s3_bucket.hugo
+  to   = module.website.aws_s3_bucket.hugo
+}
+```
+
+One block per resource. Back the state up first (`terraform state pull > backup.tfstate`).
+
+What you are reading the plan for is **no destroys and no recreations** — not an
+empty plan. Some in-place changes are expected on this upgrade, and they are
+listed below; read them, then apply. Anything proposing to replace a resource
+means an address has not landed, and applying would rebuild it for real.
+
+The `region` variable is gone with the provider blocks. Set the region on your
+own `provider "aws"` block. The certificate pins itself to us-east-1 regardless,
+as CloudFront requires.
+
+
+The module needs the AWS provider `~> 6.0` and Terraform `>= 1.5`.
+
+The version is yours to pin, not the module's: Terraform reads the **root** module's
+`.terraform.lock.hcl` and ignores the one in a child. The file committed here governs
+this repository's own checks and nothing else. In your configuration, run
+`terraform init`, commit the lock file it writes, and add checksums for any other
+platform your CI runs on with `terraform providers lock -platform=<os>_<arch>`.
 
 Read the plan before applying: a few things change in place.
 
@@ -130,13 +200,19 @@ Read the plan before applying: a few things change in place.
 
 ### Cleanup
 
-To destroy this project use the following command:
+The bucket is created with `force_destroy = false`, so Terraform will not delete it
+while the site is still in it. Empty it first, then destroy:
+
 ```bash
+$ aws s3 rm s3://<bucket> --recursive
 $ terraform destroy
 ```
 
-After that, don't forget to remove:
-- the `public hosted zone` on Amazon Route 53
+Skip the first line and the destroy fails part way through with `BucketNotEmpty`,
+leaving the rest of the stack half removed.
+
+After that, remove by hand:
+- the public hosted zone on Amazon Route 53
 
 <!-- BEGIN_TF_DOCS -->
 ## Requirements
@@ -151,7 +227,6 @@ After that, don't forget to remove:
 | Name | Version |
 |------|---------|
 | <a name="provider_aws"></a> [aws](#provider\_aws) | 6.57.1 |
-| <a name="provider_aws.aws_cloudfront"></a> [aws.aws\_cloudfront](#provider\_aws.aws\_cloudfront) | 6.57.1 |
 
 ## Modules
 
@@ -198,8 +273,7 @@ No modules.
 | <a name="input_iam_role_name"></a> [iam\_role\_name](#input\_iam\_role\_name) | Friendly name of the role. If omitted, Terraform will assign a random, unique name. | `string` | `"GitHubOIDCRole"` | no |
 | <a name="input_max_session_duration"></a> [max\_session\_duration](#input\_max\_session\_duration) | Maximum session duration in seconds. | `number` | `3600` | no |
 | <a name="input_oidc_url"></a> [oidc\_url](#input\_oidc\_url) | The URL of the identity provider. Corresponds to the iss claim. | `string` | `"https://token.actions.githubusercontent.com"` | no |
-| <a name="input_region"></a> [region](#input\_region) | The main region used by the AWS provider to deploy the solution. | `string` | `"eu-west-3"` | no |
-| <a name="input_tags"></a> [tags](#input\_tags) | Tags applied to every resource created by this stack. | `map(string)` | `{}` | no |
+| <a name="input_tags"></a> [tags](#input\_tags) | Tags applied to taggable resources created by this module. | `map(string)` | `{}` | no |
 
 ## Outputs
 
