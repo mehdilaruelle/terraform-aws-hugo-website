@@ -284,8 +284,8 @@ No modules.
 
 | Name | Description | Type | Default | Required |
 |------|-------------|------|---------|:--------:|
-| <a name="input_access_log_bucket"></a> [access_log_bucket](#input_access_log_bucket) | Bucket that receives S3 server access logs for the site bucket. Empty, the default, leaves logging off. The bucket must already exist, allow log delivery, and sit in the same region. | `string` | `""` | no |
-| <a name="input_access_log_prefix"></a> [access_log_prefix](#input_access_log_prefix) | Key prefix for the access logs. Only read when access_log_bucket is set. Ends with a slash, or the prefix runs into the object name. | `string` | `"s3-access-logs/"` | no |
+| <a name="input_access_log_bucket"></a> [access\_log\_bucket](#input\_access\_log\_bucket) | Bucket that receives S3 server access logs for the site bucket. Empty, the default, leaves logging off. The bucket must already exist, allow log delivery, and sit in the same region. | `string` | `""` | no |
+| <a name="input_access_log_prefix"></a> [access\_log\_prefix](#input\_access\_log\_prefix) | Key prefix for the access logs. Only read when access_log_bucket is set. Ends with a slash, or the prefix runs into the object name. | `string` | `"s3-access-logs/"` | no |
 | <a name="input_bucket_name"></a> [bucket\_name](#input\_bucket\_name) | The S3 bucket name to store the HUGO website. | `string` | n/a | yes |
 | <a name="input_client_id_list"></a> [client\_id\_list](#input\_client\_id\_list) | A list of client IDs (also known as audiences). | `list(string)` | <pre>[<br/>  "sts.amazonaws.com"<br/>]</pre> | no |
 | <a name="input_cloudfront_price_class"></a> [cloudfront\_price\_class](#input\_cloudfront\_price\_class) | The price class to use for CloudFront distribution. | `string` | `"PriceClass_100"` | no |
