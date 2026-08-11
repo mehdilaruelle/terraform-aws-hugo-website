@@ -72,3 +72,15 @@ variable "max_session_duration" {
   type        = number
   default     = 3600 #1hour (min accepted by AWS)
 }
+
+variable "access_log_bucket" {
+  description = "Bucket that receives S3 server access logs for the site bucket. Empty, the default, leaves logging off. The bucket must already exist, allow log delivery, and sit in the same region."
+  type        = string
+  default     = ""
+}
+
+variable "access_log_prefix" {
+  description = "Key prefix for the access logs. Only read when access_log_bucket is set."
+  type        = string
+  default     = "s3-access-logs/"
+}

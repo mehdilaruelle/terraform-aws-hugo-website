@@ -65,6 +65,26 @@ It serves over HTTP/2 and HTTP/3, compresses responses, and applies the managed
 
 A missing page is served as Hugo's `/404.html` with an HTTP 404 status.
 
+### Access logs
+
+S3 server access logging is off. Turn it on by naming a bucket to receive the
+logs:
+
+```hcl
+access_log_bucket = "my-log-bucket"
+access_log_prefix = "hugo/"   # optional, defaults to s3-access-logs/
+```
+
+The module does not create that bucket. A log destination needs its own
+ownership and delivery permissions, and it is usually shared across several
+sources — creating one per site here would be the wrong shape. It has to exist
+already, accept log delivery, and sit in the same region as the site bucket.
+
+Worth knowing before turning it on: visitors reach the site through CloudFront,
+which reads from S3 only on a cache miss. These logs therefore record
+CloudFront fetching origin objects, not people reading pages. For traffic,
+CloudFront has its own access logging.
+
 ### Invalidating the CDN after a deploy
 
 CloudFront caches for 24 hours by default, so uploading a new build to S3 does not
@@ -248,6 +268,7 @@ No modules.
 | [aws_route53_record.hugo](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/route53_record) | resource |
 | [aws_route53_record.route53_record](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/route53_record) | resource |
 | [aws_s3_bucket.hugo](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/s3_bucket) | resource |
+| [aws_s3_bucket_logging.hugo](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/s3_bucket_logging) | resource |
 | [aws_s3_bucket_ownership_controls.hugo](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/s3_bucket_ownership_controls) | resource |
 | [aws_s3_bucket_policy.hugo](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/s3_bucket_policy) | resource |
 | [aws_s3_bucket_public_access_block.hugo](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/s3_bucket_public_access_block) | resource |
@@ -263,6 +284,8 @@ No modules.
 
 | Name | Description | Type | Default | Required |
 |------|-------------|------|---------|:--------:|
+| <a name="input_access_log_bucket"></a> [access_log_bucket](#input_access_log_bucket) | Bucket that receives S3 server access logs for the site bucket. Empty, the default, leaves logging off. The bucket must already exist, allow log delivery, and sit in the same region. | `string` | `""` | no |
+| <a name="input_access_log_prefix"></a> [access_log_prefix](#input_access_log_prefix) | Key prefix for the access logs. Only read when access_log_bucket is set. | `string` | `"s3-access-logs/"` | no |
 | <a name="input_bucket_name"></a> [bucket\_name](#input\_bucket\_name) | The S3 bucket name to store the HUGO website. | `string` | n/a | yes |
 | <a name="input_client_id_list"></a> [client\_id\_list](#input\_client\_id\_list) | A list of client IDs (also known as audiences). | `list(string)` | <pre>[<br/>  "sts.amazonaws.com"<br/>]</pre> | no |
 | <a name="input_cloudfront_price_class"></a> [cloudfront\_price\_class](#input\_cloudfront\_price\_class) | The price class to use for CloudFront distribution. | `string` | `"PriceClass_100"` | no |
