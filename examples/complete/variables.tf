@@ -1,13 +1,11 @@
 variable "bucket_name" {
   description = "The S3 bucket name that will hold the built site."
   type        = string
-  default     = "hugo-blog-example-bucket"
 }
 
 variable "dns_name" {
   description = "The domain the site is served from. A Route 53 hosted zone for it must already exist."
   type        = string
-  default     = "example.com"
 }
 
 variable "region" {
@@ -17,7 +15,7 @@ variable "region" {
 }
 
 variable "tags" {
-  description = "Tags applied to every resource, through the provider's default_tags."
+  description = "Tags applied to taggable resources through the provider's default_tags, and passed to the module."
   type        = map(string)
   default = {
     project = "hugo-blog"

@@ -145,20 +145,39 @@ To learn more about it, [take a look into the blog post](https://mehdilaruelle.c
 **This repository is now a module rather than a stack you apply directly.** If
 you were cloning it and running `terraform apply` inside it, that no longer
 works: the `provider` blocks have moved out, so the configuration has nothing to
-authenticate with. Point a configuration of your own at it instead — see
-[Usage](#usage) — and move your existing state with `terraform state mv`, or run
-`terraform import` against the new addresses.
+authenticate with. Point a configuration of your own at it instead — see [Usage](#usage).
+
+Every address changes: `aws_s3_bucket.hugo` becomes `module.<name>.aws_s3_bucket.hugo`,
+and so on for all sixteen resources. Apply without telling Terraform that, and it
+plans to destroy and recreate the lot — the bucket refuses (`force_destroy` is
+false), and the distribution takes about fifteen minutes to come back.
+
+Declare the moves in your root instead. They are reviewable in the plan, unlike
+`terraform state mv`, and they survive being run twice:
+
+```hcl
+moved {
+  from = aws_s3_bucket.hugo
+  to   = module.website.aws_s3_bucket.hugo
+}
+```
+
+One block per resource. Back the state up first (`terraform state pull > backup.tfstate`),
+then apply only once `terraform plan` reports **no changes** — that is the signal that
+every address landed and nothing is about to be rebuilt.
 
 The `region` variable is gone with the provider blocks. Set the region on your
 own `provider "aws"` block. The certificate pins itself to us-east-1 regardless,
 as CloudFront requires.
 
 
-The stack now needs the AWS provider `~> 6.0` and Terraform `>= 1.5`. `.terraform.lock.hcl`
-is committed and pins 6.57.1 with checksums for `linux_amd64`, `darwin_arm64` and
-`windows_amd64`, so a plain `terraform init` gets that exact version. To move to a newer
-6.x, run `terraform init -upgrade` and commit the updated lock; on another platform, run
-`terraform providers lock -platform=<os>_<arch>` to add its checksums.
+The module needs the AWS provider `~> 6.0` and Terraform `>= 1.5`.
+
+The version is yours to pin, not the module's: Terraform reads the **root** module's
+`.terraform.lock.hcl` and ignores the one in a child. The file committed here governs
+this repository's own checks and nothing else. In your configuration, run
+`terraform init`, commit the lock file it writes, and add checksums for any other
+platform your CI runs on with `terraform providers lock -platform=<os>_<arch>`.
 
 Read the plan before applying: a few things change in place.
 
@@ -178,14 +197,19 @@ Read the plan before applying: a few things change in place.
 
 ### Cleanup
 
-Run `terraform destroy` from the configuration that calls the module:
+The bucket is created with `force_destroy = false`, so Terraform will not delete it
+while the site is still in it. Empty it first, then destroy:
 
 ```bash
+$ aws s3 rm s3://<bucket> --recursive
 $ terraform destroy
 ```
 
-After that, don't forget to remove:
-- the `public hosted zone` on Amazon Route 53
+Skip the first line and the destroy fails part way through with `BucketNotEmpty`,
+leaving the rest of the stack half removed.
+
+After that, remove by hand:
+- the public hosted zone on Amazon Route 53
 
 <!-- BEGIN_TF_DOCS -->
 ## Requirements

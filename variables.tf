@@ -20,7 +20,7 @@ variable "cloudfront_price_class" {
 }
 
 variable "tags" {
-  description = "Tags applied to every resource created by this stack."
+  description = "Tags applied to taggable resources created by this module."
   type        = map(string)
   default     = {}
 }
