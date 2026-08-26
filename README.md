@@ -126,7 +126,12 @@ serve_www = true
 That adds the name to the certificate and to the aliases of the distribution,
 points an `A` and an `AAAA` alias at that same distribution, and has the existing
 CloudFront function answer `301` to the apex, keeping the path and the query
-string. One distribution, one certificate, no second origin.
+string, repeated parameters included. One distribution, one certificate, no
+second origin.
+
+The redirect lives in `www-redirect.js` and is injected into `redirect.js` at
+apply time, so leaving `serve_www` off renders the function source **byte for
+byte what it was**: upgrading to this version plans nothing.
 
 Worth knowing before turning it on: **a certificate cannot gain a name in
 place**. Terraform issues a new one and swaps it in, which needs the DNS
@@ -344,10 +349,10 @@ No modules.
 | <a name="input_github_org"></a> [github\_org](#input\_github\_org) | GitHub organisation name. | `string` | `""` | no |
 | <a name="input_github_repositories"></a> [github\_repositories](#input\_github\_repositories) | List of GitHub repository names. | `list(string)` | `[]` | no |
 | <a name="input_github_subjects"></a> [github\_subjects](#input\_github\_subjects) | GitHub `sub` claim suffixes allowed to assume the role, appended to `repo:<org>/<repo>:`. Use `["*"]` to allow every ref. | `list(string)` | <pre>[<br/>  "ref:refs/heads/main"<br/>]</pre> | no |
-| <a name="input_serve_www"></a> [serve\_www](#input\_serve\_www) | Serve www.<dns\_name> alongside the apex, redirecting it there with a 301.<br/><br/>Off by default: turning it on adds the name to the ACM certificate, and a certificate cannot gain a name in place. Terraform issues a new one and swaps it, which needs the DNS validation record for www to exist in the hosted zone. The apex is untouched throughout, and create\_before\_destroy keeps the old certificate attached until the new one is ready. | `bool` | `false` | no |
 | <a name="input_iam_role_name"></a> [iam\_role\_name](#input\_iam\_role\_name) | Friendly name of the role. If omitted, Terraform will assign a random, unique name. | `string` | `"GitHubOIDCRole"` | no |
 | <a name="input_max_session_duration"></a> [max\_session\_duration](#input\_max\_session\_duration) | Maximum session duration in seconds. | `number` | `3600` | no |
 | <a name="input_oidc_url"></a> [oidc\_url](#input\_oidc\_url) | The URL of the identity provider. Corresponds to the iss claim. | `string` | `"https://token.actions.githubusercontent.com"` | no |
+| <a name="input_serve_www"></a> [serve\_www](#input\_serve\_www) | Serve www.<dns\_name> alongside the apex, redirecting it there with a 301.<br/><br/>Off by default: turning it on adds the name to the ACM certificate, and a<br/>certificate cannot gain a name in place. Terraform issues a new one and<br/>swaps it, which needs the DNS validation record for www to exist in the<br/>hosted zone. The apex is untouched throughout, and create\_before\_destroy<br/>keeps the old certificate attached until the new one is ready. | `bool` | `false` | no |
 | <a name="input_tags"></a> [tags](#input\_tags) | Tags applied to taggable resources created by this module. | `map(string)` | `{}` | no |
 
 ## Outputs

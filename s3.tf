@@ -5,6 +5,17 @@ locals {
 
   # One name, so certificate, alias, record and function cannot drift apart.
   www_name = "www.${var.dns_name}"
+
+  # Injected into the released function rather than shipped inside it: with
+  # serve_www off the code is what it always was, so upgrading plans nothing.
+  # A CloudFront function takes no runtime configuration, hence the apex
+  # substituted at apply time.
+  redirect_anchor = "var request = event.request;"
+  redirect_js = var.serve_www ? replace(
+    file("${path.module}/redirect.js"),
+    local.redirect_anchor,
+    "${local.redirect_anchor}\n\n${chomp(replace(file("${path.module}/www-redirect.js"), "__APEX__", local.dns_name))}\n",
+  ) : file("${path.module}/redirect.js")
 }
 
 resource "aws_acm_certificate" "hugo" {
@@ -135,13 +146,7 @@ resource "aws_cloudfront_function" "redirect" {
   runtime = "cloudfront-js-2.0"
   comment = "Redirect users from cloudfront to s3 real object name."
 
-  # A CloudFront function takes no runtime configuration, so the apex is
-  # substituted in. Empty when serve_www is off, which drops the branch.
-  code = replace(
-    file("${path.module}/redirect.js"),
-    "__APEX__",
-    var.serve_www ? local.dns_name : "",
-  )
+  code = local.redirect_js
 }
 
 data "aws_cloudfront_cache_policy" "caching_optimized" {
