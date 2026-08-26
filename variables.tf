@@ -99,3 +99,17 @@ variable "access_log_prefix" {
     error_message = "access_log_prefix must not start with a slash: S3 keys have no leading separator, and one would create an unnamed top-level folder."
   }
 }
+
+variable "serve_www" {
+  description = <<-EOT
+    Serve www.<dns_name> alongside the apex, redirecting it there with a 301.
+
+    Off by default: turning it on adds the name to the ACM certificate, and a
+    certificate cannot gain a name in place. Terraform issues a new one and
+    swaps it, which needs the DNS validation record for www to exist in the
+    hosted zone. The apex is untouched throughout, and create_before_destroy
+    keeps the old certificate attached until the new one is ready.
+  EOT
+  type        = bool
+  default     = false
+}

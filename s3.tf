@@ -2,12 +2,17 @@ locals {
   bucket_name = var.bucket_name
   dns_name    = var.dns_name
   origin_name = "s3-cloudfront-hugo"
+
+  # One name, so the certificate, the alias, the DNS record and the function
+  # cannot drift apart.
+  www_name = "www.${var.dns_name}"
 }
 
 resource "aws_acm_certificate" "hugo" {
-  region            = "us-east-1"
-  domain_name       = local.dns_name
-  validation_method = "DNS"
+  region                    = "us-east-1"
+  domain_name               = local.dns_name
+  subject_alternative_names = var.serve_www ? [local.www_name] : []
+  validation_method         = "DNS"
 
   lifecycle {
     create_before_destroy = true
@@ -130,7 +135,16 @@ resource "aws_cloudfront_function" "redirect" {
   name    = "redirect"
   runtime = "cloudfront-js-2.0"
   comment = "Redirect users from cloudfront to s3 real object name."
-  code    = file("${path.module}/redirect.js")
+
+  # The apex is substituted rather than passed at runtime: a CloudFront
+  # function takes no configuration, and reading it from the Host header is
+  # what we are trying to decide. An empty string when serve_www is off, which
+  # drops the whole branch.
+  code = replace(
+    file("${path.module}/redirect.js"),
+    "__APEX__",
+    var.serve_www ? local.dns_name : "",
+  )
 }
 
 data "aws_cloudfront_cache_policy" "caching_optimized" {
@@ -154,7 +168,7 @@ resource "aws_cloudfront_distribution" "s3_distribution" {
   http_version        = "http2and3"
   default_root_object = "index.html"
 
-  aliases = [local.dns_name]
+  aliases = var.serve_www ? [local.dns_name, local.www_name] : [local.dns_name]
 
   default_cache_behavior {
     allowed_methods = [
@@ -229,6 +243,27 @@ resource "aws_route53_record" "route53_record" {
 
   zone_id = data.aws_route53_zone.hugo.zone_id
   name    = local.dns_name
+  type    = each.value
+
+  alias {
+    name                   = aws_cloudfront_distribution.s3_distribution.domain_name
+    zone_id                = "Z2FDTNDATAQYW2"
+    evaluate_target_health = false
+  }
+}
+
+# www, pointed at the same distribution. It is the distribution that answers,
+# and the function that sends the 301, so no second origin and no second
+# certificate.
+#
+# Without these records the name does not resolve at all, which is worse than a
+# 404: a link or a bookmark written with www fails at DNS, before any redirect
+# can run.
+resource "aws_route53_record" "www" {
+  for_each = var.serve_www ? toset(["A", "AAAA"]) : toset([])
+
+  zone_id = data.aws_route53_zone.hugo.zone_id
+  name    = local.www_name
   type    = each.value
 
   alias {

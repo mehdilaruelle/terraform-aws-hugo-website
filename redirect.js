@@ -1,6 +1,31 @@
 function handler(event) {
-    // Source: https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/example-function-add-index.html
     var request = event.request;
+
+    // www to the apex, before anything else. A viewer-request function can
+    // answer instead of forwarding, so this costs no origin fetch. Terraform
+    // substitutes the apex below; when www is off it substitutes an empty
+    // string and this block is dropped.
+    var apex = '__APEX__';
+    if (apex) {
+        var host = request.headers.host && request.headers.host.value;
+        if (host && host.toLowerCase() === 'www.' + apex) {
+            var qs = '';
+            for (var k in request.querystring) {
+                qs += (qs ? '&' : '?') + k;
+                if (request.querystring[k].value) qs += '=' + request.querystring[k].value;
+            }
+            return {
+                statusCode: 301,
+                statusDescription: 'Moved Permanently',
+                headers: {
+                    location: { value: 'https://' + apex + request.uri + qs },
+                    'cache-control': { value: 'max-age=3600' }
+                }
+            };
+        }
+    }
+
+    // Source: https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/example-function-add-index.html
     var uri = request.uri;
 
     // Check whether the URI is missing a file name.
