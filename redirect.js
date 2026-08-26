@@ -1,10 +1,8 @@
 function handler(event) {
     var request = event.request;
 
-    // www to the apex, before anything else. A viewer-request function can
-    // answer instead of forwarding, so this costs no origin fetch. Terraform
-    // substitutes the apex below; when www is off it substitutes an empty
-    // string and this block is dropped.
+    // A viewer-request function can answer instead of forwarding, so the
+    // redirect costs no origin fetch. Terraform substitutes the apex.
     var apex = '__APEX__';
     if (apex) {
         var host = request.headers.host && request.headers.host.value;

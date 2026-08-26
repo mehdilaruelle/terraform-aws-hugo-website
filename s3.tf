@@ -3,8 +3,7 @@ locals {
   dns_name    = var.dns_name
   origin_name = "s3-cloudfront-hugo"
 
-  # One name, so the certificate, the alias, the DNS record and the function
-  # cannot drift apart.
+  # One name, so certificate, alias, record and function cannot drift apart.
   www_name = "www.${var.dns_name}"
 }
 
@@ -136,10 +135,8 @@ resource "aws_cloudfront_function" "redirect" {
   runtime = "cloudfront-js-2.0"
   comment = "Redirect users from cloudfront to s3 real object name."
 
-  # The apex is substituted rather than passed at runtime: a CloudFront
-  # function takes no configuration, and reading it from the Host header is
-  # what we are trying to decide. An empty string when serve_www is off, which
-  # drops the whole branch.
+  # A CloudFront function takes no runtime configuration, so the apex is
+  # substituted in. Empty when serve_www is off, which drops the branch.
   code = replace(
     file("${path.module}/redirect.js"),
     "__APEX__",
@@ -252,13 +249,8 @@ resource "aws_route53_record" "route53_record" {
   }
 }
 
-# www, pointed at the same distribution. It is the distribution that answers,
-# and the function that sends the 301, so no second origin and no second
-# certificate.
-#
-# Without these records the name does not resolve at all, which is worse than a
-# 404: a link or a bookmark written with www fails at DNS, before any redirect
-# can run.
+# Same distribution: it answers, and the function sends the 301. Without these
+# records the name fails at DNS, before any redirect can run.
 resource "aws_route53_record" "www" {
   for_each = var.serve_www ? toset(["A", "AAAA"]) : toset([])
 
