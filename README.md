@@ -352,7 +352,7 @@ No modules.
 | <a name="input_iam_role_name"></a> [iam\_role\_name](#input\_iam\_role\_name) | Friendly name of the role. If omitted, Terraform will assign a random, unique name. | `string` | `"GitHubOIDCRole"` | no |
 | <a name="input_max_session_duration"></a> [max\_session\_duration](#input\_max\_session\_duration) | Maximum session duration in seconds. | `number` | `3600` | no |
 | <a name="input_oidc_url"></a> [oidc\_url](#input\_oidc\_url) | The URL of the identity provider. Corresponds to the iss claim. | `string` | `"https://token.actions.githubusercontent.com"` | no |
-| <a name="input_serve_www"></a> [serve\_www](#input\_serve\_www) | Serve www.<dns\_name> alongside the apex, redirecting it there with a 301.<br/><br/>Off by default: turning it on adds the name to the ACM certificate, and a<br/>certificate cannot gain a name in place. Terraform issues a new one and<br/>swaps it, which needs the DNS validation record for www to exist in the<br/>hosted zone. The apex is untouched throughout, and create\_before\_destroy<br/>keeps the old certificate attached until the new one is ready. | `bool` | `false` | no |
+| <a name="input_serve_www"></a> [serve\_www](#input\_serve\_www) | Serve www.<dns\_name> and redirect it to the apex with a 301. Turning it on replaces the ACM certificate. | `bool` | `false` | no |
 | <a name="input_tags"></a> [tags](#input\_tags) | Tags applied to taggable resources created by this module. | `map(string)` | `{}` | no |
 
 ## Outputs

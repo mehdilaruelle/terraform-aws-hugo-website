@@ -101,15 +101,7 @@ variable "access_log_prefix" {
 }
 
 variable "serve_www" {
-  description = <<-EOT
-    Serve www.<dns_name> alongside the apex, redirecting it there with a 301.
-
-    Off by default: turning it on adds the name to the ACM certificate, and a
-    certificate cannot gain a name in place. Terraform issues a new one and
-    swaps it, which needs the DNS validation record for www to exist in the
-    hosted zone. The apex is untouched throughout, and create_before_destroy
-    keeps the old certificate attached until the new one is ready.
-  EOT
+  description = "Serve www.<dns_name> and redirect it to the apex with a 301. Turning it on replaces the ACM certificate."
   type        = bool
   default     = false
 }

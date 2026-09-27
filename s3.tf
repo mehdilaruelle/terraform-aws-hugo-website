@@ -3,13 +3,9 @@ locals {
   dns_name    = var.dns_name
   origin_name = "s3-cloudfront-hugo"
 
-  # One name, so certificate, alias, record and function cannot drift apart.
   www_name = "www.${var.dns_name}"
 
-  # Injected into the released function rather than shipped inside it: with
-  # serve_www off the code is what it always was, so upgrading plans nothing.
-  # A CloudFront function takes no runtime configuration, hence the apex
-  # substituted at apply time.
+  # Injected only when serve_www is on, so upgrading plans nothing.
   redirect_anchor = "var request = event.request;"
   redirect_js = var.serve_www ? replace(
     file("${path.module}/redirect.js"),
@@ -254,8 +250,6 @@ resource "aws_route53_record" "route53_record" {
   }
 }
 
-# Same distribution: it answers, and the function sends the 301. Without these
-# records the name fails at DNS, before any redirect can run.
 resource "aws_route53_record" "www" {
   for_each = var.serve_www ? toset(["A", "AAAA"]) : toset([])
 
