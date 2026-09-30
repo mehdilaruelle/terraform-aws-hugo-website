@@ -99,3 +99,9 @@ variable "access_log_prefix" {
     error_message = "access_log_prefix must not start with a slash: S3 keys have no leading separator, and one would create an unnamed top-level folder."
   }
 }
+
+variable "serve_www" {
+  description = "Serve www.<dns_name> and redirect it to the apex with a 301. Turning it on replaces the ACM certificate."
+  type        = bool
+  default     = false
+}

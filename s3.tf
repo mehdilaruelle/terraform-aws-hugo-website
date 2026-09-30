@@ -2,12 +2,23 @@ locals {
   bucket_name = var.bucket_name
   dns_name    = var.dns_name
   origin_name = "s3-cloudfront-hugo"
+
+  www_name = "www.${var.dns_name}"
+
+  # Injected only when serve_www is on, so upgrading plans nothing.
+  redirect_anchor = "var request = event.request;"
+  redirect_js = var.serve_www ? replace(
+    file("${path.module}/redirect.js"),
+    local.redirect_anchor,
+    "${local.redirect_anchor}\n\n${chomp(replace(file("${path.module}/www-redirect.js"), "__APEX__", local.dns_name))}\n",
+  ) : file("${path.module}/redirect.js")
 }
 
 resource "aws_acm_certificate" "hugo" {
-  region            = "us-east-1"
-  domain_name       = local.dns_name
-  validation_method = "DNS"
+  region                    = "us-east-1"
+  domain_name               = local.dns_name
+  subject_alternative_names = var.serve_www ? [local.www_name] : []
+  validation_method         = "DNS"
 
   lifecycle {
     create_before_destroy = true
@@ -130,7 +141,8 @@ resource "aws_cloudfront_function" "redirect" {
   name    = "redirect"
   runtime = "cloudfront-js-2.0"
   comment = "Redirect users from cloudfront to s3 real object name."
-  code    = file("${path.module}/redirect.js")
+
+  code = local.redirect_js
 }
 
 data "aws_cloudfront_cache_policy" "caching_optimized" {
@@ -154,7 +166,7 @@ resource "aws_cloudfront_distribution" "s3_distribution" {
   http_version        = "http2and3"
   default_root_object = "index.html"
 
-  aliases = [local.dns_name]
+  aliases = var.serve_www ? [local.dns_name, local.www_name] : [local.dns_name]
 
   default_cache_behavior {
     allowed_methods = [
@@ -229,6 +241,20 @@ resource "aws_route53_record" "route53_record" {
 
   zone_id = data.aws_route53_zone.hugo.zone_id
   name    = local.dns_name
+  type    = each.value
+
+  alias {
+    name                   = aws_cloudfront_distribution.s3_distribution.domain_name
+    zone_id                = "Z2FDTNDATAQYW2"
+    evaluate_target_health = false
+  }
+}
+
+resource "aws_route53_record" "www" {
+  for_each = var.serve_www ? toset(["A", "AAAA"]) : toset([])
+
+  zone_id = data.aws_route53_zone.hugo.zone_id
+  name    = local.www_name
   type    = each.value
 
   alias {

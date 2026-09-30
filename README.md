@@ -113,6 +113,33 @@ which reads from S3 only on a cache miss. These logs therefore record
 CloudFront fetching origin objects, not people reading pages. For traffic,
 CloudFront has its own access logging.
 
+### Serving www
+
+Off by default. The module answers on the apex only, and `www.<dns_name>` does
+not resolve at all. That fails at DNS, before any redirect can run: a link or a
+bookmark written with `www` simply breaks.
+
+```hcl
+serve_www = true
+```
+
+That adds the name to the certificate and to the aliases of the distribution,
+points an `A` and an `AAAA` alias at that same distribution, and has the existing
+CloudFront function answer `301` to the apex, keeping the path and the query
+string, repeated parameters included. One distribution, one certificate, no
+second origin.
+
+The redirect lives in `www-redirect.js` and is injected into `redirect.js` at
+apply time, so leaving `serve_www` off renders the function source **byte for
+byte what it was**: upgrading to this version plans nothing.
+
+Worth knowing before turning it on: **a certificate cannot gain a name in
+place**. Terraform issues a new one and swaps it in, which needs the DNS
+validation record for `www` to appear in the hosted zone first. The apex keeps
+serving throughout, and `create_before_destroy` holds the old certificate
+attached until the new one is ready, so the site does not go dark. Expect the
+apply to wait on validation.
+
 ### Invalidating the CDN after a deploy
 
 CloudFront caches for 24 hours by default, so uploading a new build to S3 does not
@@ -295,6 +322,7 @@ No modules.
 | [aws_iam_role_policy_attachment.policy](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/iam_role_policy_attachment) | resource |
 | [aws_route53_record.hugo](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/route53_record) | resource |
 | [aws_route53_record.route53_record](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/route53_record) | resource |
+| [aws_route53_record.www](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/route53_record) | resource |
 | [aws_s3_bucket.hugo](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/s3_bucket) | resource |
 | [aws_s3_bucket_logging.hugo](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/s3_bucket_logging) | resource |
 | [aws_s3_bucket_ownership_controls.hugo](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/s3_bucket_ownership_controls) | resource |
@@ -324,6 +352,7 @@ No modules.
 | <a name="input_iam_role_name"></a> [iam\_role\_name](#input\_iam\_role\_name) | Friendly name of the role. If omitted, Terraform will assign a random, unique name. | `string` | `"GitHubOIDCRole"` | no |
 | <a name="input_max_session_duration"></a> [max\_session\_duration](#input\_max\_session\_duration) | Maximum session duration in seconds. | `number` | `3600` | no |
 | <a name="input_oidc_url"></a> [oidc\_url](#input\_oidc\_url) | The URL of the identity provider. Corresponds to the iss claim. | `string` | `"https://token.actions.githubusercontent.com"` | no |
+| <a name="input_serve_www"></a> [serve\_www](#input\_serve\_www) | Serve www.<dns\_name> and redirect it to the apex with a 301. Turning it on replaces the ACM certificate. | `bool` | `false` | no |
 | <a name="input_tags"></a> [tags](#input\_tags) | Tags applied to taggable resources created by this module. | `map(string)` | `{}` | no |
 
 ## Outputs
